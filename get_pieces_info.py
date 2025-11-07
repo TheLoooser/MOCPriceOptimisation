@@ -63,6 +63,7 @@ def get_element_ids():
 
     return element_ids
 
+
 def get_colour_name_dict():
     print('\033[96m' + 'Getting the names of all used colours...' + '\033[0m')
     colour_id_list = get_all_parts()['Color'].unique()
