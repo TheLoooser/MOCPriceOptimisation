@@ -43,7 +43,7 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
         if part_nr in dictionary.keys():
             for element_id in ast.literal_eval(element_list):
                 if element_id in dictionary[part_nr].keys():
-                    lego_prices.append([element_id, dictionary[part_nr][element_id]])                    
+                    lego_prices.append([element_id, *dictionary[part_nr][element_id]])                    
                     found = True
                     i += 1
 
@@ -52,11 +52,11 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
                 if lego_id in dictionary.keys():
                     for element_id in ast.literal_eval(element_list):
                         if element_id in dictionary[lego_id].keys():
-                            lego_prices.append([element_id, dictionary[lego_id][element_id]])
+                            lego_prices.append([element_id, *dictionary[lego_id][element_id]])
                             found = True
                             i += 1
             if not found:
-                lego_prices.append([None, None])
+                lego_prices.append([None, None, None])
                 not_found.append([idx, part_nr, element_list])
 
     print(f"Number of mapped LEGO piece prices to the list {i}.")
@@ -71,8 +71,8 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
     # Store the updated mapping list
     pd.DataFrame([a + b for a,b in zip(mapping, lego_prices)],
              columns = ['idx', 'part_nr', 'colour', 'quantity',
-                        'sparse', 'element_ids', 'lego_ids', 'lego_ele_id', 'lego_price']
-                        ).to_csv('results/part_list_with_lego_prices.csv')
+                        'sparse', 'element_ids', 'lego_ids', 'lego_ele_id', 'lego_price', 'lego_amount']
+                        ).to_csv('results/part_list_with_lego_prices.csv', index=False)
 
 
 def map_lego_prices():
@@ -80,7 +80,7 @@ def map_lego_prices():
     lego_html_files = ["lego199.htm", "lego398.htm", "lego463.htm"]
     data = []
     for i, file in enumerate(lego_html_files):
-        print(f'Processing file {i}/{len(lego_html_files)}...')
+        print(f'Processing file {i+1}/{len(lego_html_files)}...')
         data.extend(extract_lego_data(file))
 
     print(f"Number of distinct pieces available on LEGO: {len(data)}")
@@ -90,7 +90,7 @@ def map_lego_prices():
 
     dictionary = defaultdict(dict)
     for t in df.itertuples():
-        dictionary[t.part_nr][t.element_id] = t.price
+        dictionary[t.part_nr][t.element_id] = (t.price, t.amount)
 
     # Map lego piece ID's to the ID's from the mapping list
     map_lego_piece_id_to_mapping_list_id(dictionary)
@@ -131,10 +131,10 @@ def extract_andrea_data():
                         longest_match = colour
 
             for part_nr in part_nrs:
-                element_ids = get_unique_piece_id(int(part_nr), inv_colour_dict[longest_match]) 
+                element_ids = get_unique_piece_id(part_nr, inv_colour_dict[longest_match]) 
                 time.sleep(1)
                 if element_ids:
-                    item = item + (int(part_nr), inv_colour_dict[longest_match])
+                    item = item + (str(part_nr), inv_colour_dict[longest_match])
                 
             if not item:
                 count = 0
@@ -157,31 +157,31 @@ def extract_andrea_data():
             piece_amount = int(children[0]["value"])
             item = item + (piece_amount,)
 
-        # print(item)
         data.append(item)
-    print(over_one)
-    print(len(data))
+    print(f'All pieces have at most one corresponding part number: {not over_one}')
+    print(f"Number of distinct pieces available on Andrea: {len(data)}")
 
-    return pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
+    andrea_df = pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
+    andrea_df = andrea_df.iloc[1:].astype({'part_nr': object, 'colour_id': int})
+
+    return andrea_df
 
 
 def map_andrea_prices(df):
+    df = df.rename(columns={'colour_id': 'colour'})
+    df = df.set_index(['part_nr', 'colour'])
+    
     part_list = pd.read_csv('results/part_list_with_lego_prices.csv', header=0)
 
-    merged = pd.merge(left=part_list,
-                      right=df,
-                      how='left',
-                      left_on=['part_nr', 'colour'],
-                      right_on=['part_nr', 'colour_id']
-    )
-
-    merged.to_csv('results/part_list_complete.csv')
+    merged = part_list.join(df, on=['part_nr', 'colour'], how='left')
+    merged.to_csv('results/part_list_complete.csv', index=False)
 
 
 def prepare_julia_input():
     julia_input = pd.read_csv('results/part_list_complete.csv', header=0)
     julia_input = julia_input[julia_input['price'].notnull() & julia_input['lego_price'].notnull()]
-    julia_input[['lego_price', 'price', 'quantity']].to_csv('results/julia_input.csv', index=False)
+    julia_input[['lego_price', 'price', 'quantity', 'lego_amount', 'amount', 'idx', 'part_nr', 'colour']] \
+        .to_csv('results/julia_input.csv', index=False)
 
 
 if __name__ == "__main__":
@@ -190,6 +190,7 @@ if __name__ == "__main__":
 
     # Andrea's Brickstore (Pipeline 10 & 11)
     andrea_data_df = extract_andrea_data()
+    #andrea_data_df['part_nr'] = andrea_data_df['part_nr'].str.strip()
     map_andrea_prices(andrea_data_df)
 
     # Pipeline 12
