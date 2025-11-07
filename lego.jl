@@ -10,9 +10,7 @@ using Printf
 # Model
 model = Model(HiGHS.Optimizer)
 
-# Input (prices, amount)
-# df = DataFrame(a = [1, 2, 6], b = [4, 5, 3], c = [7, 8, 9])
-# CSV.write("file.csv", df)
+# Input (prices, amount, quantities)
 df_new = CSV.read("results/julia_input.csv", DataFrame)
 
 length = nrow(df_new)
@@ -24,7 +22,9 @@ length = nrow(df_new)
 
 # Constraints
 for (i, row) in enumerate( eachrow( df_new ) ) 
-    @constraint(model, x[i] + y[i] == row[3]) 
+    @constraint(model, x[i] + y[i] == row[3])
+    @constraint(model, x[i] <= row[4])
+    @constraint(model, y[i] <= row[5])
 end
 @constraint(model, sum(y[i] for i in 1:length) <= 100000*b)
 
