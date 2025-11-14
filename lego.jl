@@ -41,15 +41,11 @@ end
 
 
 # Final model
-println(model)
+# println(model)
 
 # Solve & results
 optimize!(model)
-println(termination_status(model))
 println(objective_value(model))
-#println(value(x))
-#println(value(y))
-#println(value(b))
 
 @printf("Lego price: %f\n", sum(value(x) .* df_new.lego_price))
 @printf("Andrea price: %f\n", sum(value(y) .* df_new.price))
@@ -59,7 +55,32 @@ println(objective_value(model))
 
 # TODO
 # Check which pieces change between the two optimisation models
-# Calculate total price if using max from Lego and rest from Andrea (and vice versa)
-# -> compare those prices to the objective values of the two optimisation models
 # Check difference between solutions to model 1 with all additional costs or only MWST
+# Print part number of pieces which are in x and y (>= 0)
 
+# Create rebrickable part list for the different stores
+lego = DataFrame()
+lego[!, "Part"] = df_new.part_nr
+lego[!, "Color"] = df_new.colour
+lego[!, "Quantity"] = value(x)
+lego[!, :Quantity] = Int.(lego[!,:Quantity])
+
+CSV.write("results/lego.csv", lego)
+
+brickowl = DataFrame()
+brickowl[!, "Part"] = df_new.part_nr
+brickowl[!, "Color"] = df_new.colour
+brickowl[!, "Quantity"] = value(y)
+brickowl[!, :Quantity] = Int.(brickowl[!,:Quantity])
+
+CSV.write("results/brickowl.csv", brickowl)
+
+# List pieces which were selected in both stores
+brickowl[!, "Quantity2"] = value(x)
+brickowl[!, "Quantity3"] = df_new.quantity
+
+for (i, row) in enumerate( eachrow( brickowl ) ) 
+    if row[3] > 0 && row[4] > 0
+        println(row)
+    end
+end

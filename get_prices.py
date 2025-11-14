@@ -96,8 +96,8 @@ def map_lego_prices():
     map_lego_piece_id_to_mapping_list_id(dictionary)
 
 
-def extract_andrea_data():
-    with open("data/andrea.htm", encoding="utf8") as fp:
+def extract_brickowl_data(store_name):
+    with open(f"data/{store_name}.htm", encoding="utf8") as fp:
         soup = BeautifulSoup(fp, 'lxml')
 
     with open("results/colour_dict.json", 'r') as f:
@@ -159,18 +159,18 @@ def extract_andrea_data():
 
         data.append(item)
     print(f'All pieces have at most one corresponding part number: {not over_one}')
-    print(f"Number of distinct pieces available on Andrea: {len(data)}")
+    print(f"Number of distinct pieces available on BrickOwl: {len(data)}")
 
-    andrea_df = pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
-    andrea_df = andrea_df.iloc[1:].astype({'part_nr': object, 'colour_id': int})
+    brickowl_df = pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
+    brickowl_df = brickowl_df.iloc[1:].astype({'part_nr': object, 'colour_id': int})
 
-    return andrea_df
+    return brickowl_df
 
 
-def map_andrea_prices(df):
+def map_brickowl_prices(df):
     df = df.rename(columns={'colour_id': 'colour'})
     df = df.set_index(['part_nr', 'colour'])
-    
+
     part_list = pd.read_csv('results/part_list_with_lego_prices.csv', header=0)
 
     merged = part_list.join(df, on=['part_nr', 'colour'], how='left')
@@ -178,33 +178,55 @@ def map_andrea_prices(df):
 
 
 def prepare_julia_input():
-    julia_input = pd.read_csv('results/part_list_complete.csv', header=0)
-    julia_input = julia_input[julia_input['price'].notnull() & julia_input['lego_price'].notnull()]
+    complete = pd.read_csv('results/part_list_complete.csv', header=0)
+    julia_input = complete[complete['price'].notnull() & complete['lego_price'].notnull()]
     julia_input[['lego_price', 'price', 'quantity', 'lego_amount', 'amount', 'idx', 'part_nr', 'colour']] \
         .to_csv('results/julia_input.csv', index=False)
+    
+    missing = complete[complete['price'].isnull() & complete['lego_price'].isnull()]
+    missing[['part_nr', 'colour', 'quantity']].rename(columns={'part_nr': 'Part', 'colour': 'Color', 'quantity': 'Quantity'}) \
+        .to_csv('results/missing.csv', index=False)
+    
+    # Prices of pieces exclusive to one store
+    lego = complete[complete['price'].isnull() & complete['lego_price'].notnull()]
+    brickowl = complete[complete['price'].notnull() & complete['lego_price'].isnull()]
+    print(f"Price of pieces only available on LEGO: {(lego['lego_price'] * lego['quantity']).sum()}")
+    print(f"Price of pieces only available on BrickOwl: {(brickowl['price'] * brickowl['amount']).sum()}")
+    lego[['part_nr', 'colour', 'quantity']].rename(columns={'part_nr': 'Part', 'colour': 'Color', 'quantity': 'Quantity'}) \
+        .to_csv('results/lego_only.csv', index=False)
+    brickowl[['part_nr', 'colour', 'quantity']].rename(columns={'part_nr': 'Part', 'colour': 'Color', 'quantity': 'Quantity'}) \
+        .to_csv('results/brickowl_only.csv', index=False)
+
+    # Prices of pieces if maximum is bought from same store
+    lego = complete[complete['lego_price'].notnull()]
+    brickowl = complete[complete['price'].notnull()]
+    print(f"Max price of pieces of LEGO pieces: {(lego['lego_price'] * lego['quantity']).sum()}")
+    print(f"Max price of pieces of BrickOwl pieces: {(brickowl['price'] * brickowl['amount']).sum()}")
+
+    # Prices of pieces needed to satisfy quantities if maximum available capacity is bought from store
+    lego = complete[complete['quantity'] - complete['lego_amount'] > 0]
+    brickowl = complete[complete['quantity'] - complete['amount'] > 0]
+    print(f"Price of BrickOwl pieces to satisfy quantity: {(lego['price'] * (lego['quantity'] - lego['lego_amount'])).sum()}")
+    print(f"Price of LEGO pieces to satisfy quantity: {(brickowl['lego_price'] * (brickowl['quantity'] - brickowl['amount'])).sum()}")
 
 
 if __name__ == "__main__":
     # Lego Store (Pipeline 8 & 9)
     map_lego_prices()
 
-    # Andrea's Brickstore (Pipeline 10 & 11)
-    andrea_data_df = extract_andrea_data()
-    #andrea_data_df['part_nr'] = andrea_data_df['part_nr'].str.strip()
-    map_andrea_prices(andrea_data_df)
+    # BrickOwl store (Pipeline 10 & 11)
+    brickowl_data_df = extract_brickowl_data('andrea')
+    map_brickowl_prices(brickowl_data_df)
 
     # Pipeline 12
     prepare_julia_input()
 
 
-# IMPORTANT: Respect quantities of shops (they migth not be the same, ie lower amount than the one actually needed)
-# Important: Andrea sum of piece price larger than amount x individiual price
-
 # TODO
-# Clean up repo (rename varibales, create functions, document code, create git repo, add readme)
-# Include tax free constraint when under 62.-
-# Respect quantities
-# Create rebrickable out csv for lego, andrea (bot from julia result) and missing
-# -> import them into rebrickable (and lego pick-a-brick) to verify prices
-# -> use missing list to shop for remaining pieces
+# Finish readme
+# Verify that results (andrea & lego & missing) cover all parts (and quantities)
+# -> in julia (before it is not possible)
+# Add lusher tree MOC to the mix
+# -> create new parts list in rebrickable (combine parts of both MOCs)
+# -> Use these lists to calculate optimal price (do not forget additional instruction cost)
 

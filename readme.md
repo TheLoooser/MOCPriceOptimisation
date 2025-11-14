@@ -72,6 +72,18 @@ With the part number and the colour id from both the updated parts list from ste
 
 
 
+## Step YY: Interpret results
+> **⚠** Using the maximum available pieces from one store normally results in a higher total cost than with the optimal solution.
+
+
+
+## Step XX: Verify quantities and prices
+created CSV's (lego, lego_only, missing, ...) -> import to rebrickable (for lego export newly created rebrickable list in the lego pick-a-brick format) -> use lists to shop in the corresponding stores -> check total price & compare to output of the scripts
+
+> **⚠** The price shown in the brickowl store can deviate slightly from the sum of the price of the individual pieces multiplied by the selected amount.
+
+
+
 
 
 
