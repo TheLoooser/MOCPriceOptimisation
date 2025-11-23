@@ -68,12 +68,48 @@ Similarly as in step 8, data is extracted from the HTML file. The price and amou
 With the part number and the colour id from both the updated parts list from step 10 and the recently extracted data from step 10, we can use these two values to merge the two lists together to create the final parts list containing the prices from both stores (LEGO and BrickOwl). This list is then also stored as a `.csv` file in the `/results` folder.
 
 ## Step 12: Create input file for Julia
+In preparation for the optimisation, the parts list is stripped down and all the unnecessary columns are removed. The required columns include the available amounts and prices for each store as well as the total quantity for the MOC. Additionaly, in order to easier keep track of the actual part, the part number and colour are kept as well. Furthermore, pieces with quantities only available are removed from the list, because there is nothing to optimise for.
+
+## Step 13: Optimise costs
+Using the input file from the previous step, a mixed integer linear programming model is implemented in [JUmP](https://jump.dev/JuMP.jl/stable/). Variables are created the amount of pieces to be bought in each store ($x_{i}$ for the i-th piece in store x), plus a binary variable to include the shipping costs if pieces are bought from store y.  
+Basically, there only exist three simple constraints
+-  The total amount of pieces across the two stores for a given part has to equal the amount of pieces of the MOC.
+- The amount of pieces for a given part cannot be higher than the available quantity for a shop.
+- If even one piece is bought from the BrickOwl shop, we have to include the shipping costs for this store¹.
+
+¹: It is assumed that enough pieces are bought from the lego store, such that no shipping costs are accumulated.
+
+### 13.1
+The first objective minimises the total part cost while respecting all additional costs (shipping & customs tariffs).
+
+### 13.2
+The second objective also minimises the total cost, but this time the focus solely lies on the part cost, i.e. the shipping cost and customs tariffs are ignored.
+
+### 13.3
+For the third objective a new variable and a new constraint is introduced. The goal is to split up the parts from the BrickOwl store into multiple packets, such that the customs tariffs can be avoided. This model works under the assumption that paying the shipping costs multiple times is still cheaper than the customs tariffs.
+
+---
+For the first objective, the resulting part list for the two stores are stored in two `CSV` files, which can be imported from rebrickable to create custom set lists. Parts which appear in both stores in the final solution are printed to the terminal.  
+After optimising the second objective, the parts which differ to the previous solution are printed to the terminal, such that the differences can be compared.  
+The output after the third objective are simply the total prices of the two stores. 
 
 
+## Step 14: Interpret results
+When trying to build a MOC, you start out on rebrickable. From there, the easiest way to get the parts needed to build the set would be to search for a BrickOwl shop with as many pieces (to a reasonable price) as possible and then buy the remaining pieces from the LEGO pick-a-brick shop. This will in most cases already be cheaper than buying all the pieces from LEGO directly, since the individiual part prices on BrickOwl stores tend to be slightly cheaper. To find the best value combination, this optimisation can be solved under different constraints (see previous step).
+
+1. Assuming that we buy as many pieces as possible in one order, we inevitabely will have to pay for shipping (large packet) and customs tariffs. This solution to this model should in most cases be slightly cheaper. However, we notice that the customs tariffs are responsible for a non-neglible account of the final costs.
+2. When ignoring the customs tariffs and the shipping costs to find the cheapest possible price regardeless of additional costs, we can compare the solution to the one from the previous objective. The pieces which change store in this new solution are all slightly cheaper on BrickOwl than on LEGO, i.e. in the previous model, these pieces would have been bought from LEGO even though their individiual piece price is not lower than on the BrickOwl store.
+3. Another, this time realistic, option to get rid of the customs tariffs is to force the BrickOwl packets into smaller orders.
 
 
-## Step YY: Interpret results
 > **⚠** Using the maximum available pieces from one store normally results in a higher total cost than with the optimal solution.
+
+> **__NOTE__** As a general rule of thumb, buy pieces on BrickOwl if the price plus the prices times MWST is lower than the price on the LEGO pick-a-brick store¹.
+
+¹: This only makes sense, if you buy large enough quantities. For smaller amounts, the shipping costs for the BrickOwl store will play a significant factor.
+
+
+## Step YY: 
 
 
 
