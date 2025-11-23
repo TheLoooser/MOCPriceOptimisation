@@ -7,13 +7,18 @@ using CSV
 
 using Printf
 
+
+##################################
+# MODEL, VARIABLES & CONSTRAINTS #
+##################################
+
 # Model
 model = Model(HiGHS.Optimizer)
 
 # Input (prices, amount, quantities)
-df_new = CSV.read("results/julia_input.csv", DataFrame)
+input = CSV.read("results/julia_input.csv", DataFrame)
 
-length = nrow(df_new)
+length = nrow(input)
 
 # Variables
 @variable(model, x[1:length] >= 0, integer=true)
@@ -21,24 +26,25 @@ length = nrow(df_new)
 @variable(model, b, binary=true)
 
 # Constraints
-for (i, row) in enumerate( eachrow( df_new ) ) 
+for (i, row) in enumerate( eachrow( input ) ) 
     @constraint(model, x[i] + y[i] == row[3])
     @constraint(model, x[i] <= row[4])
     @constraint(model, y[i] <= row[5])
 end
 @constraint(model, sum(y[i] for i in 1:length) <= 100000*b)
 
+
+##################################
+# FIRST OBJECTIVE & OPTIMISATION #
+##################################
 # Objective
 # 1) Incl. custom tariffs
-@objective(model, Min, sum(df_new[i, 1]*x[i] + df_new[i,2]*y[i] for i in 1:length) # Warenwert
-                        + 0.081*(sum(df_new[i,2]*y[i] for i in 1:length) + 23*b) # MWST
+@objective(model, Min, sum(input[i, 1]*x[i] + input[i,2]*y[i] for i in 1:length) # Warenwert
+                        + 0.081*(sum(input[i,2]*y[i] for i in 1:length) + 23*b) # MWST
                         + 13*b # Verzollungskosten (Dienstleistungsgebühr)
-                        + 0.03*(sum(df_new[i,2]*y[i] for i in 1:length) + 23*b) # Verzollungskosten (Warenwertzuschlag)
-                        + 0.081*(13*b + 0.03*(sum(df_new[i,2]*y[i] for i in 1:length) + 23*b)) # MWST auf Verzollungskosten
+                        + 0.03*(sum(input[i,2]*y[i] for i in 1:length) + 23*b) # Verzollungskosten (Warenwertzuschlag)
+                        + 0.081*(13*b + 0.03*(sum(input[i,2]*y[i] for i in 1:length) + 23*b)) # MWST auf Verzollungskosten
                         )
-# 2) Price only
-# @objective(model, Min, sum(df_new[i, 1]*x[i] + df_new[i,2]*y[i] for i in 1:length))
-
 
 # Final model
 # println(model)
@@ -47,29 +53,29 @@ end
 optimize!(model)
 println(objective_value(model))
 
-@printf("Lego price: %f\n", sum(value(x) .* df_new.lego_price))
-@printf("Andrea price: %f\n", sum(value(y) .* df_new.price))
-@printf("MWST: %f\n", 0.081*(sum(value(y) .* df_new.price) + 23*value(b)))
-@printf("Warenwertzuschlag: %f\n", 0.03*(sum(value(y) .* df_new.price) + 23*value(b)))
-@printf("MWST (Verzollung): %f\n", 0.081*(13*value(b) + 0.03*(sum(value(y) .* df_new.price) + 23*value(b))))
+@printf("Lego price: %f\n", sum(value(x) .* input.lego_price))
+@printf("BrickOwl price: %f\n", sum(value(y) .* input.price))
+@printf("MWST: %f\n", 0.081*(sum(value(y) .* input.price) + 23*value(b)))
+@printf("Warenwertzuschlag: %f\n", 0.03*(sum(value(y) .* input.price) + 23*value(b)))
+@printf("MWST (Verzollung): %f\n", 0.081*(13*value(b) + 0.03*(sum(value(y) .* input.price) + 23*value(b))))
 
-# TODO
-# Check which pieces change between the two optimisation models
-# Check difference between solutions to model 1 with all additional costs or only MWST
-# Print part number of pieces which are in x and y (>= 0)
+
+##################################
+########## PART LISTS ############
+##################################
 
 # Create rebrickable part list for the different stores
 lego = DataFrame()
-lego[!, "Part"] = df_new.part_nr
-lego[!, "Color"] = df_new.colour
+lego[!, "Part"] = input.part_nr
+lego[!, "Color"] = input.colour
 lego[!, "Quantity"] = value(x)
 lego[!, :Quantity] = Int.(lego[!,:Quantity])
 
 CSV.write("results/lego.csv", lego)
 
 brickowl = DataFrame()
-brickowl[!, "Part"] = df_new.part_nr
-brickowl[!, "Color"] = df_new.colour
+brickowl[!, "Part"] = input.part_nr
+brickowl[!, "Color"] = input.colour
 brickowl[!, "Quantity"] = value(y)
 brickowl[!, :Quantity] = Int.(brickowl[!,:Quantity])
 
@@ -77,10 +83,56 @@ CSV.write("results/brickowl.csv", brickowl)
 
 # List pieces which were selected in both stores
 brickowl[!, "Quantity2"] = value(x)
-brickowl[!, "Quantity3"] = df_new.quantity
+brickowl[!, "Quantity3"] = input.quantity
 
 for (i, row) in enumerate( eachrow( brickowl ) ) 
     if row[3] > 0 && row[4] > 0
         println(row)
     end
 end
+
+
+##################################
+## SECOND OBJECTIVE & SOLUTION ###
+##################################
+
+solutions = DataFrame()
+solutions[!, "Part"] = input.part_nr
+solutions[!, "Color"] = input.colour
+solutions[!, "LegoPrice"] = input.lego_price
+solutions[!, "BrickOwlPricer"] = input.price
+solutions[!, "LegoMWST"] = value(x)
+solutions[!, "BrickOwlMWST"] = value(y)
+
+# Objective
+# 2) Price only
+@objective(model, Min, sum(input[i, 1]*x[i] + input[i,2]*y[i] for i in 1:length))
+optimize!(model)
+println(objective_value(model))
+
+solutions[!, "Lego"] = value(x)
+solutions[!, "BrickOwl"] = value(y)
+
+# Show the difference between the solutions to the two objectives
+for (i, row) in enumerate( eachrow( solutions ) ) 
+    if row[5] != row[7] || row[6] != row[8]
+        println(row)
+    end
+end
+
+
+##################################
+#### OBJECTIVE 2.5 & SOLUTION ####
+##################################
+
+# Objective
+# 2.5) Price only and split brickowl shippments into smaller packets to avoid custom tariffs
+@variable(model, c >= 0, integer=true)
+@constraint(model, sum(input[i,2]*y[i] for i in 1:length) <= 51*c)
+@objective(model, Min, sum(input[i, 1]*x[i] + input[i,2]*y[i] for i in 1:length) + 10.6*c)
+optimize!(model)
+println(objective_value(model))
+println(value(c))
+
+@printf("Lego price: %f\n", sum(value(x) .* input.lego_price))
+@printf("BrickOwl price: %f\n", sum(value(y) .* input.price))
