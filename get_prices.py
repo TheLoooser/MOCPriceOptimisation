@@ -75,9 +75,8 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
                         ).to_csv('results/part_list_with_lego_prices.csv', index=False)
 
 
-def map_lego_prices():
+def map_lego_prices(lego_html_files):
     # Extract necessary info from LEGO HTML pages
-    lego_html_files = ["lego199.htm", "lego398.htm", "lego463.htm"]
     data = []
     for i, file in enumerate(lego_html_files):
         print(f'Processing file {i+1}/{len(lego_html_files)}...')
@@ -212,21 +211,12 @@ def prepare_julia_input():
 
 if __name__ == "__main__":
     # Lego Store (Pipeline 8 & 9)
-    map_lego_prices()
+    lego_html_files = ["lego199.htm", "lego398.htm", "lego463.htm"]
+    map_lego_prices(lego_html_files)
 
     # BrickOwl store (Pipeline 10 & 11)
-    brickowl_data_df = extract_brickowl_data('andrea')
+    brickowl_data_df = extract_brickowl_data('blackcat')
     map_brickowl_prices(brickowl_data_df)
 
     # Pipeline 12
     prepare_julia_input()
-
-
-# TODO
-# Finish readme
-# Verify that results (andrea & lego & missing) cover all parts (and quantities)
-# -> in julia (before it is not possible)
-# Add lusher tree MOC to the mix
-# -> create new parts list in rebrickable (combine parts of both MOCs)
-# -> Use these lists to calculate optimal price (do not forget additional instruction cost)
-
