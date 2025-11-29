@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # BrickOwl store(s)
     part_list = pd.read_csv('results/part_list_with_lego_prices.csv', header=0)
 
-    store_html_files = ['andrea', 'blackcat']
+    store_html_files = ['blackcat', 'andrea']
     for store in store_html_files:
         brickowl_data = extract_brickowl_data(store)
         part_list = append_brickowl_prices(brickowl_data, part_list, store)
@@ -35,6 +35,7 @@ if __name__ == '__main__':
     print(missing.head(n=10))
 
     df = df[df.available > 0]
+    df = df.astype({f'{s}_amount': int for s in ['lego'] + store_html_files})
     df.drop(columns=['available'], inplace=True)
     df.to_csv('results/julia_input_multiple_stores.csv', index=False)
 
