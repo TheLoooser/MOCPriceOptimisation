@@ -15,7 +15,7 @@ URL = 'https://rebrickable.com/api/v3/lego/'
 
 
 def get_all_parts():
-    df = pd.read_csv('data/rebrickable.csv', header=0)
+    df = pd.read_csv('data/CSV/rebrickable.csv', header=0)
     return df
 
 

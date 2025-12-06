@@ -13,7 +13,7 @@ from get_pieces_info import get_unique_piece_id
 
 def extract_lego_data(filename):
     lego_data = []
-    with open("data/" + filename, encoding="utf8") as fp:
+    with open("data/HTML/" + filename, encoding="utf8") as fp:
         soup = BeautifulSoup(fp, 'lxml')
 
     for piece in tqdm(soup.find_all('div', {'class' : 'ElementLeaf_wrapper__G5C7D'})):
@@ -96,7 +96,7 @@ def map_lego_prices(lego_html_files):
 
 
 def extract_brickowl_data(store_name):
-    with open(f"data/{store_name}.htm", encoding="utf8") as fp:
+    with open(f"data/HTML/{store_name}.htm", encoding="utf8") as fp:
         soup = BeautifulSoup(fp, 'lxml')
 
     with open("results/colour_dict.json", 'r') as f:
