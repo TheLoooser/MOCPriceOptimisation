@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # BrickOwl store(s)
     part_list = pd.read_csv('results/part_list_with_lego_prices.csv', header=0)
 
-    store_html_files = ['blackcat', 'andrea']
+    store_html_files = ['blackcat', 'briques48', 'swisspandabricks', 'playmondo', '500tomoon', 'swissbrickshop', 'andrea']
     for store in store_html_files:
         brickowl_data = extract_brickowl_data(store)
         part_list = append_brickowl_prices(brickowl_data, part_list, store)
