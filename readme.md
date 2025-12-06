@@ -1,4 +1,4 @@
-# Pipeline
+# Pipeline 1: Two Stores
 Compare Lego pick-a-brick piece prices to the piece prices of a BrickOwl store for a given set.
 This pipeline only compares pieces available in both sets. Shipping costs are also ignored, but the custom tariffs and VAT are respected to a certain degree.
 
@@ -97,9 +97,13 @@ The output after the third objective are simply the total prices of the two stor
 ## Step 14: Interpret results
 When trying to build a MOC, you start out on rebrickable. From there, the easiest way to get the parts needed to build the set would be to search for a BrickOwl shop with as many pieces (to a reasonable price) as possible and then buy the remaining pieces from the LEGO pick-a-brick shop. This will in most cases already be cheaper than buying all the pieces from LEGO directly, since the individiual part prices on BrickOwl stores tend to be slightly cheaper. To find the best value combination, this optimisation can be solved under different constraints (see previous step).
 
-1. Assuming that we buy as many pieces as possible in one order, we inevitabely will have to pay for shipping (large packet) and customs tariffs. This solution to this model should in most cases be slightly cheaper. However, we notice that the customs tariffs are responsible for a non-neglible account of the final costs.
+1. Assuming that we buy as many pieces as possible in one order, we inevitabely will have to pay for shipping (large packet) and customs tariffs. This solution to this model should in most cases be slightly cheaper. However, we notice that the customs tariffs are responsible for a non-neglible amount of the final costs.
 2. When ignoring the customs tariffs and the shipping costs to find the cheapest possible price regardeless of additional costs, we can compare the solution to the one from the previous objective. The pieces which change store in this new solution are all slightly cheaper on BrickOwl than on LEGO, i.e. in the previous model, these pieces would have been bought from LEGO even though their individiual piece price is not lower than on the BrickOwl store.
 3. Another, this time realistic, option to get rid of the customs tariffs is to force the BrickOwl packets into smaller orders.
+
+In conclusion, the first optimisation is a neat improvement over simply buying the maximum from one shop and filling up the remaning parts from the second shop. This version will certainly already help in bringing down the total part cost, but this is definitely not the best overall solution yet. This is due to only focusing on two stores at a time and allowing for customs tariffs, which can be expensive.  
+The second optimisation version only really tells you how low the costs could go in an ideal world, where there are no shipping costs or tariffs at all. This does not really help you in deciding which part to buy in which shop, but rather shows you a lower bound of the total costs of your MOC. I.e. expect the final cost to be above this value.  
+The third option is an improvement over the first one, because it eliminates the customs tariffs by introducing additional shipping costs. This version only works under the assumption that paying the shipping costs multiple times is still cheaper than the customs tariffs for one larger order would have been.
 
 
 > **⚠** Using the maximum available pieces from one store normally results in a higher total cost than with the optimal solution.
@@ -109,7 +113,16 @@ When trying to build a MOC, you start out on rebrickable. From there, the easies
 ¹: This only makes sense, if you buy large enough quantities. For smaller amounts, the shipping costs for the BrickOwl store will play a significant factor.
 
 
-## Step YY: 
+
+# Pipeline 2: Multiple stores
+While we managed to cut down on the costs with the first pipeline, before we even got to verifying the selected quantities (which will be a separate step at the end of this pipeline), we noticed that we can do even better. The reason for this is twofold. One, by focusing on only two stores at a time, we exclude shops with potentially even cheaper part prices. And two, shipping costs are usually cheaper the closer the stores are to you. If you buy from stores from your own country, not only will the shipping costs be lower (although the individual part prices might be slightly higher), but also can you circumvent all the customs tariffs.  
+Instead of starting a completely new pipeline, we begin by using the same first six steps and the continue with the following step.
+
+## Step 15: Extract data from BrickOwl stores
+We repeat Step 7 from the previous Pipeline for as many times as we wish, i.e. for as many stores as we want to include. Then steps 8 and 9 are performed as well followed by steps 10 and 11 for all the newly added stores. Finally, an updated version of step 12 is used to create the required input of the new optimisation model. Apart from having more columns due to the additional stores, this file also now contains entries of stores which have no quantity of a given piece. Because the opimisation model has a constraint that enforces that the total required quantity is met, this difference in the input file does not matter.
+
+## Step 16: Optimise costs (again)
+
 
 
 
