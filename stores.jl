@@ -33,12 +33,21 @@ shipping_costs = [
     3.2 3.7 8.5 11.5 11.5; 
 ]
 weight_limits = [
-    0 65 100 290 1700 10000;  # SWissBrickBank x Panda Bricks
+    0 65 100 290 1700 10000;  # SwissBrickBank x Panda Bricks
     0 90 140 250 2000 10000;  # Playmondo
     0 230 2000 10000 10000 10000;  # 500tomoon
     0 80 200 2000 10000 10000;  # Swiss BrickShop
 ]
-shipping_eu = [10]  # Andrea
+shipping_eu = [
+    10.25, # Andrea
+    # 18.17, # Little Big Store
+    # 20.19, # CentBricks
+    # 9.67, # Brickina
+    # 9.11, # BrickTasty
+    # 9.06, # Lo Stanzino
+    # 10.33, # 3 Bricks
+    # 8.44, # Brick Takeover
+    ]
 thresholds = [
     0 50 100 100000;
     0 0 0 100000;
@@ -67,6 +76,7 @@ println(nstores)
 @variable(model, x[1:len, 1:nstores] >= 0, integer=true)
 @variable(model, b[1:nchstores, 1:nbuckets], binary=true)
 @variable(model, c[1:neustores] >= 0, integer=true)
+@variable(model, e[1:neustores], binary=true)  # 1 if pieces are bought from store i, 0 otherwise
 @variable(model, d[1:nchstores_weight, 1:nweightbuckets], binary=true)
 
 # Constraints
@@ -82,6 +92,9 @@ for j in nchstores_total + 1:nstores
     idx = nstores - j + 1
     @constraint(model, sum(input[i, 2*j + 3]*x[i, j] for i in 1:len) <= (60 - shipping_eu[idx])*c[idx]) # Max shipping cost
 end
+for i in 1:neustores
+    @constraint(model, c[i] <= 10000 * e[i])  # basically e[i] = c[i]/c[i] if c[i] > 0, 0 otherwise
+end
 # - CH shipping
 # -- Order cost
 for i in 1:nchstores_total - nchstores_weight
@@ -91,7 +104,7 @@ for i in 1:nchstores_total - nchstores_weight
                         sum(thresholds[i, j] * b[i, j] for j in 1:nbuckets))
     @constraint(model, sum(b[i, j] for j in 1:nbuckets) <= 1)
 end
-# # -- Weight cost
+# -- Weight cost
 for i in nchstores_weight:nchstores_total
     idx = i - nchstores_weight + 1
     println(i)
@@ -102,7 +115,10 @@ for i in nchstores_weight:nchstores_total
                         sum(weight_limits[idx, j] * d[idx, j] for j in 1:nweightbuckets))
     @constraint(model, sum(d[idx, j] for j in 1:nweightbuckets) <= 1)
 end
-
+# - Limit the number of different shops (optional)
+@constraint(model, sum(b[i, j] for i in 1:nchstores for j in 1:nbuckets) + 
+                    sum(d[i, j] for i in 1:nchstores_weight for j in 1:nweightbuckets) +
+                    sum(e[i] for i in 1:neustores) <= nstores)  # <<<==== PUT LIMIT HERE
 
 ##################################
 # FIRST OBJECTIVE & OPTIMISATION #
