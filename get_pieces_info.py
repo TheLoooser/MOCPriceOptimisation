@@ -1,4 +1,5 @@
 import os
+import ast
 import json
 import time
 from tqdm import tqdm
@@ -16,6 +17,7 @@ URL = 'https://rebrickable.com/api/v3/lego/'
 
 def get_all_parts():
     df = pd.read_csv('data/CSV/rebrickable.csv', header=0)
+    df.drop(columns=['Is Spare'], inplace=True)
     return df
 
 
@@ -29,11 +31,11 @@ def get_unique_piece_id(part_nr, colour_id):
         return []
     
 
-def get_lego_piece_id(element_id):
+def get_external_piece_ids(element_id):
     result = requests.get(URL + f'elements/{element_id}/', headers={'Authorization': 'key ' + API_KEY})
     if result.status_code == 200:
         # print(str(element_id) + ", " , result.json()['part']['external_ids']['LEGO'])
-        return result.json()['part']['external_ids']['LEGO']
+        return result.json()['part']['external_ids']
     else:
         # print(str(element_id) + ", " + str(result.status_code))
         return []
@@ -41,7 +43,7 @@ def get_lego_piece_id(element_id):
 
 def map_element_ids_to_part_nr(element_ids):
     df = get_all_parts()
-    elementid_df = pd.DataFrame(element_ids, columns=['Part', 'Color', 'ElementIDs', 'LegoIDs'])
+    elementid_df = pd.DataFrame(element_ids, columns=['Part', 'Color', 'ElementIDs', 'LegoIDs', 'BrickLinkIDs'])
     df = df.merge(elementid_df, how='left', left_on=['Part', 'Color'], right_on=['Part', 'Color'])
     df.to_csv('results/part_list_with_element_ids.csv')
 
@@ -55,13 +57,32 @@ def get_element_ids():
         elements = get_unique_piece_id(part, colour)
         time.sleep(1)
         lego_ids = []
+        bricklink_ids = []
         for element in elements:
-            lego_ids.append(get_lego_piece_id(element))
+            external_ids = get_external_piece_ids(element)
+            lego_ids.append(external_ids['LEGO'])
+            bricklink_ids.append(external_ids['BrickLink'])
             time.sleep(1)
         lego_ids = list(set([x for sublist in lego_ids for x in sublist]))
-        element_ids.append([part, colour, elements, lego_ids])
+        bricklink_ids = list(set([x for sublist in bricklink_ids for x in sublist]))
+        element_ids.append([part, colour, elements, lego_ids, bricklink_ids])
 
     return element_ids
+
+def get_weight(list_of_ids, weights):
+    l = []
+    for id in ast.literal_eval(list_of_ids):
+        if id in weights: 
+            l = l + [weights[id]]
+    return l
+
+def add_weights():
+    weights = pd.read_csv('data/CSV/Parts.csv', sep='\t')
+    mapping = dict(zip(weights['Number'], weights['Weight (in Grams)']))
+
+    parts_list = pd.read_csv('results/part_list_with_element_ids.csv', header=0)
+    parts_list['weight'] = parts_list['BrickLinkIDs'].apply(get_weight, weights=mapping)
+    parts_list.to_csv('results/part_list_with_weights.csv', index=False)
 
 
 def get_colour_name_dict():
@@ -89,3 +110,7 @@ if __name__ == "__main__":
     # Pipeline 4
     element_ids_list = get_element_ids()
     map_element_ids_to_part_nr(element_ids_list)
+
+    # Pipeline ?? (adding weights)
+    add_weights()
+
