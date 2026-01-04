@@ -36,8 +36,8 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
     lego_prices = []
     not_found = []
     i = 0
-    mapping = pd.read_csv('results/part_list_with_element_ids.csv', header=0).values.tolist()
-    for idx, part_nr, _, _, _, element_list, lego_list in tqdm(mapping, total=len(mapping)):
+    mapping = pd.read_csv('results/part_list_with_weights.csv', header=0).values.tolist()
+    for idx, part_nr, _, _, element_list, lego_list, _, _ in tqdm(mapping, total=len(mapping)):
         # print(str(idx) + " " + str(part_nr) + " " + element_list)
         found = False
         if part_nr in dictionary.keys():
@@ -71,7 +71,8 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
     # Store the updated mapping list
     pd.DataFrame([a + b for a,b in zip(mapping, lego_prices)],
              columns = ['idx', 'part_nr', 'colour', 'quantity',
-                        'sparse', 'element_ids', 'lego_ids', 'lego_ele_id', 'lego_price', 'lego_amount']
+                        'element_ids', 'lego_ids', 'bricklink_ids', 'weight',
+                        'lego_ele_id', 'lego_price', 'lego_amount']
                         ).to_csv('results/part_list_with_lego_prices.csv', index=False)
 
 
@@ -122,18 +123,18 @@ def extract_brickowl_data(store_name):
         for id in tr.find_all('td', {'class' : 'sorting_1'}):
             children = id.find_all("a" , recursive=False)
             part_nrs = re.search("(\([\d\s\/]*\)$)", children[0].text).group(0)[1:-1].replace(" ", "").split("/")  # ([\d]*\)$)
-            
+
             longest_match = ""
             for colour in colour_names:
-                if colour.lower() in children[0].text.lower():
+                if children[0].text.lower().startswith(colour.lower(), 5):
                     if len(colour) > len(longest_match):
                         longest_match = colour
 
-            for part_nr in part_nrs:
-                element_ids = get_unique_piece_id(part_nr, inv_colour_dict[longest_match]) 
-                time.sleep(1)
-                if element_ids:
-                    item = item + (str(part_nr), inv_colour_dict[longest_match])
+            # for part_nr in part_nrs[-1]:
+            #     element_ids = get_unique_piece_id(part_nr, inv_colour_dict[longest_match]) 
+            #     time.sleep(1)
+            #     if element_ids:
+            #         item = item + (str(part_nr), inv_colour_dict[longest_match])
                 
             if not item:
                 count = 0
@@ -141,7 +142,10 @@ def extract_brickowl_data(store_name):
                     for lego_ele_id in ast.literal_eval(part['lego_ids']):
                         if lego_ele_id in part_nrs:
                             count += 1
-                            item = item + (part['part_nr'], part['colour'])
+                            if count > 1:
+                                item = (part['part_nr'], part['colour'])
+                            else:
+                                item = item + (part['part_nr'], part['colour'])
                             break
                 if count > 1:
                     over_one = True
@@ -211,11 +215,11 @@ def prepare_julia_input():
 
 if __name__ == "__main__":
     # Lego Store (Pipeline 8 & 9)
-    lego_html_files = ["lego199.htm", "lego398.htm", "lego463.htm"]
+    lego_html_files = ["lego200.htm", "lego400.htm", "lego446.htm"]
     map_lego_prices(lego_html_files)
 
     # BrickOwl store (Pipeline 10 & 11)
-    brickowl_data_df = extract_brickowl_data('blackcat')
+    brickowl_data_df = extract_brickowl_data('andrea')
     map_brickowl_prices(brickowl_data_df)
 
     # Pipeline 12
