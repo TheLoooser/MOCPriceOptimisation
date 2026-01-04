@@ -13,18 +13,23 @@ def append_brickowl_prices(brickowl_data, parts_df, store_name):
 
 if __name__ == '__main__':
     # LEGO store
-    lego_html_files = ['lego199.htm', 'lego398.htm', 'lego463.htm']
+    lego_html_files = ['lego200.htm', 'lego400.htm', 'lego446.htm']
     map_lego_prices(lego_html_files)
 
     # BrickOwl store(s)
     part_list = pd.read_csv('results/part_list_with_lego_prices.csv', header=0)
 
-    store_html_files = ['blackcat', 'briques48', 'swisspandabricks', 'playmondo', '500tomoon', 'swissbrickshop', 'andrea']
+    store_html_files = ['blackcat', 'swisspandabricks', 'playmondo', '500tomoon', 'swissbrickshop', \
+                        'andrea', 'brickina', 'bricktasty', 'lostanzino', 'stalaedla']
+    # store_html_files = ['blackcat', 'briques48', 'swisspandabricks', 'playmondo', '500tomoon', 'swissbrickshop', \
+    #                     '3bricks', 'andrea', 'brickina', 'bricktakeover', 'bricktasty', 'centbricks', 'littlebigstore', 'lostanzino']
     for store in store_html_files:
         brickowl_data = extract_brickowl_data(store)
         part_list = append_brickowl_prices(brickowl_data, part_list, store)
 
-    part_list = part_list.drop(columns=['sparse', 'element_ids', 'lego_ids', 'lego_ele_id'])
+    part_list = part_list.drop(columns=['element_ids', 'lego_ids', 'bricklink_ids', 'lego_ele_id'])
+    # TODO: Extract weigth from list (string) and make integer (handle lists with more than 1 element)
+    
     part_list.to_csv('results/part_list_multiple_stores.csv', index=False)
 
     # Prepare output for optimisation
