@@ -24,7 +24,7 @@ shipping_ch = [
     # 3.2 8 8;  # Playmondo
     # 4.5 9 9;  # 500 to moon
     # 3.7 8.5 8.5;  # Swiss Brickshop
-    4.9 0 0;  # Briques 48
+    # 4.9 0 0;  # Briques 48
 ]
 shipping_costs = [
     3.0 4.5 6.4 15.5 20.0;
@@ -39,14 +39,15 @@ weight_limits = [
     0 80 200 2000 10000 10000;  # Swiss BrickShop
 ]
 shipping_eu = [
-    10.25, # Andrea
-    # 18.17, # Little Big Store
-    # 20.19, # CentBricks
-    # 9.67, # Brickina
-    # 9.11, # BrickTasty
-    # 9.06, # Lo Stanzino
     # 10.33, # 3 Bricks
+    10.25, # Andrea
+    9.67, # Brickina
     # 8.44, # Brick Takeover
+    9.11, # BrickTasty
+    # 20.19, # CentBricks
+    # 18.17, # Little Big Store
+    9.06, # Lo Stanzino
+    10.23, # Stalaedla
     ]
 thresholds = [
     0 50 100 100000;
@@ -55,7 +56,7 @@ thresholds = [
     # 0 20 100 100000;
     # 0 18 100 100000;
     # 0 12 100 100000;
-    0 200 100000 100000;
+    # 0 200 100000 100000;
 ]
 
 len = nrow(input)
@@ -84,13 +85,13 @@ println(nstores)
 for (i, row) in enumerate( eachrow( input ) ) 
     @constraint(model, sum(x[i, j] for j in 1:nstores) >= row[4]) # Total quantity
     for j in 1:nstores
-        @constraint(model, x[i, j] <= row[4 + 2*j]) # Store quantity
+        @constraint(model, x[i, j] <= row[5 + 2*j]) # Store quantity
     end
 end
 # - EU shipping
 for j in nchstores_total + 1:nstores
-    idx = nstores - j + 1
-    @constraint(model, sum(input[i, 2*j + 3]*x[i, j] for i in 1:len) <= (60 - shipping_eu[idx])*c[idx]) # Max shipping cost
+    idx = j - nchstores_total
+    @constraint(model, sum(input[i, 2*j + 4]*x[i, j] for i in 1:len) <= (60 - shipping_eu[idx])*c[idx]) # Max shipping cost
 end
 for i in 1:neustores
     @constraint(model, c[i] <= 10000 * e[i])  # basically e[i] = c[i]/c[i] if c[i] > 0, 0 otherwise
@@ -98,21 +99,20 @@ end
 # - CH shipping
 # -- Order cost
 for i in 1:nchstores_total - nchstores_weight
-    @constraint(model, sum(input[k, 2*i + 3] * x[k, i] for k in 1:len) <= 
+    @constraint(model, sum(input[k, 2*i + 4] * x[k, i] for k in 1:len) <= 
                         sum(thresholds[i, j+1] * b[i, j] for j in 1:nbuckets))
-    @constraint(model, sum(input[k, 2*i + 3] * x[k, i] for k in 1:len) >= 
+    @constraint(model, sum(input[k, 2*i + 4] * x[k, i] for k in 1:len) >= 
                         sum(thresholds[i, j] * b[i, j] for j in 1:nbuckets))
     @constraint(model, sum(b[i, j] for j in 1:nbuckets) <= 1)
 end
 # -- Weight cost
-for i in nchstores_weight:nchstores_total
-    idx = i - nchstores_weight + 1
-    println(i)
-    println(idx)
-    @constraint(model, 1.15*sum(x[k, i] for k in 1:len) <= 
+for i in nchstores + 1:nchstores_total
+    idx = i - nchstores
+    @constraint(model, sum(input[k, 5] * x[k, i] for k in 1:len) <= 
                         sum(weight_limits[idx, j+1] * d[idx, j] for j in 1:nweightbuckets))
-    @constraint(model, 1.15*sum(x[k, i] for k in 1:len) >= 
+    @constraint(model, sum(input[k, 5] * x[k, i] for k in 1:len) >= 
                         sum(weight_limits[idx, j] * d[idx, j] for j in 1:nweightbuckets))
+
     @constraint(model, sum(d[idx, j] for j in 1:nweightbuckets) <= 1)
 end
 # - Limit the number of different shops (optional)
@@ -124,7 +124,7 @@ end
 # FIRST OBJECTIVE & OPTIMISATION #
 ##################################
 # Objective
-@objective(model, Min, sum(input[i, 2*j + 3] * x[i, j] for i in 1:len for j in 1:nstores) +
+@objective(model, Min, sum(input[i, 2*j + 4] * x[i, j] for i in 1:len for j in 1:nstores) +
                         sum(c[j-nchstores_total]*shipping_eu[j-nchstores_total] for j in nchstores_total+1:nstores) + 
                         sum(shipping_ch[i, j]*b[i, j] for i in 1:nchstores for j in 1:nbuckets) +
                         sum(shipping_costs[i, j]*d[i, j] for i in 1:nchstores_weight for j in 1:nweightbuckets)
@@ -139,7 +139,7 @@ println(value(d))
 println(value(c))
 
 for s in 1:nstores
-    @printf("Store Nr. %i: %f\n", s, sum(value(x)[i, s] .* input[i, 2*s + 3] for i in 1:len))
+    @printf("Store Nr. %i: %f\n", s, sum(value(x)[i, s] .* input[i, 2*s + 4] for i in 1:len))
 end
 
 # TODO:
@@ -152,7 +152,7 @@ out[!, "Color"] = input.colour
 for s in 1:nstores
     out[!, "Quantity"] = df[!, s]
     out[!, "Quantity"] = round.(Int, out[!,:Quantity])  # Int.(out[!,:Quantity])
-    CSV.write(string("results/", s, ".csv"), out)
+    CSV.write(string("results/stores/", s, ".csv"), out)
 end
 
 # TODO
@@ -164,3 +164,23 @@ end
 # -> Use these lists to calculate optimal price (do not forget additional instruction cost)
 # Expand excel with prices from different brickowl stores (incl swiss stores)
 
+
+# Bricks to consider for combined part list purchase
+#
+# BrickTakeover
+# Sta Laedla
+# Andreas Brickstore
+# Little Big Store
+# Brickina
+# VividBricks
+# CentBricks
+# 
+# SwissBrickBank x PandaBricks
+# Brixx Shop Schmidt
+# KK Bricks and Toys
+# Black Cat Bricks
+# Playmondo
+# 500 to moon
+# Swiss BrickShop
+# Jura Brick
+# welcomebricks
