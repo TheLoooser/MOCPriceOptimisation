@@ -27,27 +27,44 @@ shipping_ch = [
     # 4.9 0 0;  # Briques 48
 ]
 shipping_costs = [
-    3.0 4.5 6.4 15.5 20.0;
+    3.0 4.5 6.4 13.9 20.9;
+    3.5 9.0 12.0 21.0 21.0;
+    3.0 3.4 9.0 12.0 15.0;
+    5.0 5.4 11.0 12.0 21.0; # Pauschale für Bearbeitungsgebühr 2.- CHF (bis 50.-)
+    3.8 6.3 13.1 16.1 25.1;
     1.8 2.7 3.2 8.0 8.0;
     4.5 9.0 15.0 15 15.0;
-    3.2 3.7 8.5 11.5 11.5; 
+    3.0 5.4 10.5 13.5 13.5;
+    #3.2 3.7 8.5 11.5 11.5;
+    6.5 9.0 12.0 12.0 12.0;
 ]
 weight_limits = [
-    0 65 100 290 1700 10000;  # SwissBrickBank x Panda Bricks
+    0 65 100 320 1700 10000;  # SwissBrickBank x Panda Bricks
+    0 40 1600 8500 10000 20000; # Brixx-Shop-Schmidt
+    0 60 400 960 1800 10000; # Brick'n'Toast
+    0 20 390 1800 9400 10000; # K_K Bricks and Toys
+    0 80 200 1500 8000 10000; # Brickunion
     0 90 140 250 2000 10000;  # Playmondo
     0 230 2000 10000 10000 10000;  # 500tomoon
-    0 80 200 2000 10000 10000;  # Swiss BrickShop
+    0 60 420 1800 9500 10000; # HochisBricks
+    #0 80 200 2000 10000 10000;  # Swiss BrickShop
+    0 930 1850 9000 10000 10000; # Jura-Bricks
 ]
 shipping_eu = [
-    # 10.33, # 3 Bricks
-    10.25, # Andrea
-    9.67, # Brickina
-    # 8.44, # Brick Takeover
-    9.11, # BrickTasty
-    # 20.19, # CentBricks
-    # 18.17, # Little Big Store
-    9.06, # Lo Stanzino
-    10.23, # Stalaedla
+    10.12, # 3 Bricks
+    11.21, # Andrea - up to 33.-, then 12.37 up to 40
+    9.75, # Brickina
+    10.63, # Brick Takeover
+    8.93, # BrickTasty
+    12.38, # Brikea
+    15.63, # Brixitaly
+    14.63, # JustBrix - up to 44.-
+    8.27, # kleinesteinewelt - up to 20.-, then 27.6
+    10.11, # LA_Brickstore
+    12.01, # Little Big Store - up to 30.20, then 17.6 up to 43.-
+    9.85, # Lo Stanzino - up to 40, then 11.32
+    10.12, # Stalaedla
+    11.5, # Vividbricks
     ]
 thresholds = [
     0 50 100 100000;
@@ -58,6 +75,7 @@ thresholds = [
     # 0 12 100 100000;
     # 0 200 100000 100000;
 ]
+discount = [0.93 1.0] # [1.0 1.0]
 
 len = nrow(input)
 nbuckets = size(shipping_ch)[2]
@@ -99,9 +117,9 @@ end
 # - CH shipping
 # -- Order cost
 for i in 1:nchstores_total - nchstores_weight
-    @constraint(model, sum(input[k, 2*i + 4] * x[k, i] for k in 1:len) <= 
+    @constraint(model, discount[i]*sum(input[k, 2*i + 4] * x[k, i] for k in 1:len) <= 
                         sum(thresholds[i, j+1] * b[i, j] for j in 1:nbuckets))
-    @constraint(model, sum(input[k, 2*i + 4] * x[k, i] for k in 1:len) >= 
+    @constraint(model, discount[i]*sum(input[k, 2*i + 4] * x[k, i] for k in 1:len) >= 
                         sum(thresholds[i, j] * b[i, j] for j in 1:nbuckets))
     @constraint(model, sum(b[i, j] for j in 1:nbuckets) <= 1)
 end
@@ -124,7 +142,8 @@ end
 # FIRST OBJECTIVE & OPTIMISATION #
 ##################################
 # Objective
-@objective(model, Min, sum(input[i, 2*j + 4] * x[i, j] for i in 1:len for j in 1:nstores) +
+@objective(model, Min, sum(discount[j]*input[i, 2*j + 4] * x[i, j] for i in 1:len for j in 1:1) + # LEGO.ch
+                        sum(input[i, 2*j + 4] * x[i, j] for i in 1:len for j in 2:nstores) +
                         sum(c[j-nchstores_total]*shipping_eu[j-nchstores_total] for j in nchstores_total+1:nstores) + 
                         sum(shipping_ch[i, j]*b[i, j] for i in 1:nchstores for j in 1:nbuckets) +
                         sum(shipping_costs[i, j]*d[i, j] for i in 1:nchstores_weight for j in 1:nweightbuckets)
@@ -142,9 +161,6 @@ for s in 1:nstores
     @printf("Store Nr. %i: %f\n", s, sum(value(x)[i, s] .* input[i, 2*s + 4] for i in 1:len))
 end
 
-# TODO:
-# Get more stores
-# Check minimum order value (should probably not matter because of shipping costs)
 df = DataFrame(value(x), :auto)
 out = DataFrame()
 out[!, "Part"] = input.part_nr
@@ -157,30 +173,7 @@ end
 
 # TODO
 # Finish readme
-# Verify that results (andrea & lego & missing) cover all parts (and quantities)
-# -> in julia (before it is not possible)
-# Add lusher tree MOC to the mix
-# -> create new parts list in rebrickable (combine parts of both MOCs)
-# -> Use these lists to calculate optimal price (do not forget additional instruction cost)
+# Use updated part list
+# Use up to date part list from stores
+# Verify shipping costs of selected stores
 # Expand excel with prices from different brickowl stores (incl swiss stores)
-
-
-# Bricks to consider for combined part list purchase
-#
-# BrickTakeover
-# Sta Laedla
-# Andreas Brickstore
-# Little Big Store
-# Brickina
-# VividBricks
-# CentBricks
-# 
-# SwissBrickBank x PandaBricks
-# Brixx Shop Schmidt
-# KK Bricks and Toys
-# Black Cat Bricks
-# Playmondo
-# 500 to moon
-# Swiss BrickShop
-# Jura Brick
-# welcomebricks
