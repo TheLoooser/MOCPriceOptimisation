@@ -166,6 +166,7 @@ def extract_brickowl_data(store_name):
 
     brickowl_df = pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
     brickowl_df = brickowl_df.iloc[1:].astype({'part_nr': object, 'colour_id': int})
+    brickowl_df = brickowl_df.groupby(['part_nr', 'colour_id'], as_index=False).agg({'price': 'mean', 'amount': 'sum'})  # Aggregate multiple rows with the same part together
 
     return brickowl_df
 
