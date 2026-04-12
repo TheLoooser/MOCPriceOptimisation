@@ -17,7 +17,7 @@ URL = 'https://rebrickable.com/api/v3/lego/'
 
 def get_all_parts():
     df = pd.read_csv('data/CSV/rebrickable.csv', header=0)
-    df.drop(columns=['Is Spare'], inplace=True)
+    # df.drop(columns=['Is Spare'], inplace=True)
     return df
 
 
