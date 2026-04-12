@@ -19,17 +19,24 @@ def extract_weight(weight):
 
 if __name__ == '__main__':
     # LEGO store
-    lego_html_files = ['lego200.htm', 'lego400.htm', 'lego446.htm']
+    lego_html_files = ['lego200.htm', 'lego399.htm', 'lego499.htm']
     map_lego_prices(lego_html_files)
 
     # BrickOwl store(s)
     part_list = pd.read_csv('results/part_list_with_lego_prices.csv', header=0)
 
-    store_html_files = ['blackcat', 'swisspandabricks', 'playmondo', '500tomoon', 'swissbrickshop', \
-                        'andrea', 'brickina', 'bricktasty', 'lostanzino', 'stalaedla']
-    # store_html_files = ['blackcat', 'briques48', 'swisspandabricks', 'playmondo', '500tomoon', 'swissbrickshop', \
-    #                     '3bricks', 'andrea', 'brickina', 'bricktakeover', 'bricktasty', 'centbricks', 'littlebigstore', 'lostanzino']
+    store_html_files = [
+        # CH
+        'blackcat', 'swisspandabricks_clean', 'brixxschmidt', 'brickntoast', 'kkbricks', \
+        'brickunion', 'playmondo', '500tomoon', 'hochisbricks', 'jurabrick',
+        # EU
+        '3_bricks', 'andreas_brickstore', 'brickina', 'brick_takeover', 'brick_tasty', \
+        'brikea', 'brix_italy', 'just_brix', 'kleinesteinewelt', 'la_brickstore', \
+        'little_big_store', 'lo_stanzino', 'sta_laedla', 'vivid_bricks'
+    ]
+
     for store in store_html_files:
+        print(store)
         brickowl_data = extract_brickowl_data(store)
         part_list = append_brickowl_prices(brickowl_data, part_list, store)
 
