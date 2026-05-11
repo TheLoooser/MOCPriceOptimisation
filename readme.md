@@ -116,24 +116,128 @@ The third option is an improvement over the first one, because it eliminates the
 
 # Pipeline 2: Multiple stores
 While we managed to cut down on the costs with the first pipeline, before we even got to verifying the selected quantities (which will be a separate step at the end of this pipeline), we noticed that we can do even better. The reason for this is twofold. One, by focusing on only two stores at a time, we exclude shops with potentially even cheaper part prices. And two, shipping costs are usually cheaper the closer the stores are to you. If you buy from stores from your own country, not only will the shipping costs be lower (although the individual part prices might be slightly higher), but also can you circumvent all the customs tariffs.  
-Instead of starting a completely new pipeline, we begin by using the same first six steps and the continue with the following step.
+Instead of starting a completely new pipeline, we begin by using the same first six steps and then continue with the following step.
 
-## Step 15: Extract data from BrickOwl stores
+## Step 17: Adding weights
+As it turns out, using the costs of the pieces to estimate the shipping costs of a store is not accurate enough, especially since parts with similar prices can vary in weight. And because most stores operate using weights to calculate the shipping costs, it made sense to incorporate this aspect to improve the accuracy of the optimisation model. Conveniently [BrickLink](https://www.bricklink.com/catalogDownload.asp) provides a part list with the information of the individual part weight from which we can extract this value for each part in our MOC part list.
+> **__NOTE__** In the optimisation model, international stores have only one weight limit to keep it simpler. International stores anyway have a given upper limit of total cost to avoid customs tariffs.
+
+## Step 16: Extract data from BrickOwl stores
 We repeat Step 7 from the previous Pipeline for as many times as we wish, i.e. for as many stores as we want to include. Then steps 8 and 9 are performed as well followed by steps 10 and 11 for all the newly added stores. Finally, an updated version of step 12 is used to create the required input of the new optimisation model. Apart from having more columns due to the additional stores, this file also now contains entries of stores which have no quantity of a given piece. Because the opimisation model has a constraint that enforces that the total required quantity is met, this difference in the input file does not matter.
 
-## Step 16: Optimise costs (again)
+## Step 17: Optimise costs (again)
+The optimisation in this step uses an updated version of the Optimisation model in Step 13. The most noteable change is the inclusion of the part weigths for the shipping cost constraints. Also, an option to limit the number of stores was added.
 
 
+## Step 18: Interpret results (again)
+To validate the cost reduction made by this pipeline, we compare the results of the optimisation model using different versions of part list of a MOC with 501 unique parts and 2911 total pieces with different cost estimations.
 
+<table>
+    <thead>
+        <tr>
+            <th tyle="border-right: 1px solid"></th>
+            <th colspan=5>Estimations</th>
+            <th colspan=4>Optimisations⁰</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="border-right: 1px solid">Variant</td>
+            <td>Rebrickable</td>
+            <td>MOC Creator</td>
+            <td>BrickOwl</td>
+            <td>BrickOwl AutoSelect</td>
+            <td style="border-right: 1px solid">BrickOwl AutoSelect (fixed⁶)</td>
+            <td>Blue Parts¹</td>
+            <td>Cheap Parts²</td>
+            <td>No Parts³</td>
+            <td>Lego discount⁷</td>
+        </tr>
+        <tr>
+            <td style="border-right: 1px solid">Parts</td>
+            <td>260.10</td>
+            <td>188.60</td>
+            <td>296.45</td>
+            <td>142.65⁵</td>
+            <td style="border-right: 1px solid">156.06</td>
+            <td>177.85</td>
+            <td>177.30</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td style="border-right: 1px solid">Shipping</td>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>39.34 (+29.25)</td>
+            <td style="border-right: 1px solid">61.81</td>
+            <td>28.65</td>
+            <td>28.60</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td style="border-right: 1px solid">Total</td>
+            <td>>260.10</td>
+            <td>>188.60⁴</td>
+            <td>>296.45</td>
+            <td>~211.25</td>
+            <td style="border-right: 1px solid">217.85</td>
+            <td>206.50</td>
+            <td>205.90</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+
+¹  
+²  
+³  
+⁴ Without shipping costs  
+⁵ 3 out of the 7 selected stores do not have shipping costs (Quote Only). The shipping costs for the remaining 4 stores is on average 9.75.  
+⁶ Additionally, the minimum lot average or the minimum order for certain stores is not met. If we remove those stores and select the next best stores (with the most parts that are still needed), the final cost increases to 217.85.  
+⁷ 8% discount of a vaucher of any value for lego.ch
+
+
+# TODO: Mention Lego discount, check if solution with two stores is even possible (and if so, compare final cost to table)
+
+# Optimal solution
+# - no blue parts: 192.017 (+ ~1.791 for the any colour parts)
+# - on average cheapest colour for blue part: 197.037
+
+Note: shipping costs for brickowl autoselect feature around 40-50% of total cost (which is insane)
 
 ## Step XX: Verify quantities and prices
+see verify_parts.py
 created CSV's (lego, lego_only, missing, ...) -> import to rebrickable (for lego export newly created rebrickable list in the lego pick-a-brick format) -> use lists to shop in the corresponding stores -> check total price & compare to output of the scripts
+
+for the part list with blue pieces removed, make sure these parts are available in the selected stores.
 
 > **⚠** The price shown in the brickowl store can deviate slightly from the sum of the price of the individual pieces multiplied by the selected amount.
 
 
 
 
+Cost comparison:
+Rebrickable estimation, Rebelni, brickowl auto select, 2 stores (pipeline 1*),
+2 pipeline
+    - original parts, i.e. blue ones
+    - blue parts replaced with cheapest average cost
+    - completely removed and added back from selected stores
+    -> cheapest of those with lego discount
+
+* (or using pipeline 2 with limit on the number of stores (or both))
+
+
+Limitation of implemented pipeline: When part can be in any colour (would require to get part price for all available colours for every shop, implement additional logic to account for this constraint in optimisation (since no longer all parts have to have their quantity met))
+
+
+
+TODO: Update Lego store discount with 'Gutschein' not % Discount
+      Check why number of mapped lego pieces (lego.ch) is lower than number of available pieces
 
 
 TODO: Markdeep for pipeline image https://casual-effects.com/markdeep/#api
