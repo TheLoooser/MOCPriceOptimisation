@@ -19,7 +19,7 @@ def extract_weight(weight):
 
 if __name__ == '__main__':
     # LEGO store
-    lego_html_files = ['lego200.htm', 'lego399.htm', 'lego499.htm']
+    lego_html_files = ['lego200.htm', 'lego400.htm', 'lego501.htm']
     map_lego_prices(lego_html_files)
 
     # BrickOwl store(s)
@@ -27,8 +27,8 @@ if __name__ == '__main__':
 
     store_html_files = [
         # CH
-        'blackcat', 'swisspandabricks_clean', 'brixxschmidt', 'brickntoast', 'kkbricks', \
-        'brickunion', 'playmondo', '500tomoon', 'hochisbricks', 'jurabrick',
+        'blackcat', 'swisspandabricks', 'brixxschmidt', 'brickntoast', \
+        'brickunion', 'playmondo', '500tomoon', 'hochisbricks', 'jurabrick', 'welcomebricks',
         # EU
         '3_bricks', 'andreas_brickstore', 'brickina', 'brick_takeover', 'brick_tasty', \
         'brikea', 'brix_italy', 'just_brix', 'kleinesteinewelt', 'la_brickstore', \
