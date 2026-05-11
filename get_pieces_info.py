@@ -111,6 +111,6 @@ if __name__ == "__main__":
     element_ids_list = get_element_ids()
     map_element_ids_to_part_nr(element_ids_list)
 
-    # Pipeline ?? (adding weights)
+    # Pipeline 17 (adding weights)
     add_weights()
 
