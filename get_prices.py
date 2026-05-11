@@ -21,7 +21,7 @@ def extract_lego_data(filename):
         for price in piece.find_all('div', {'class' : 'ElementLeaf_elementPrice__SwfmC ds-body-sm-medium'}):
             price = float(price.text[:-4].replace(",", "."))
             item = item + (price,)
-        for amount in piece.find_all('input', {'class' : '_43qpxq_stepperInput _43qpxq_medium ds-label-lg-regular'}):
+        for amount in piece.find_all('input', {'class' : '_43qpxq_input _43qpxq_medium ds-label-lg-regular'}):
             amount = int(amount['value'])
             item = item + (amount,)
         for id in piece.find_all('p', {'class' : 'ElementLeaf_elementId__gY8no ds-body-xs-regular'}):
@@ -100,6 +100,10 @@ def extract_brickowl_data(store_name):
     with open(f"data/HTML/{store_name}.htm", encoding="utf8") as fp:
         soup = BeautifulSoup(fp, 'lxml')
 
+    # Extract the number of parts of this store from the HTML
+    shipping_method_string = soup.find_all('form', class_='shipping_estimate-form fProc')[0].find_all('p')
+    number_of_parts = int(re.findall(r"\d+", shipping_method_string[0].text)[-1])
+
     with open("results/colour_dict.json", 'r') as f:
         colour_dict = json.loads(f.read())
 
@@ -160,9 +164,13 @@ def extract_brickowl_data(store_name):
             piece_amount = int(children[0]["value"])
             item = item + (piece_amount,)
 
-        data.append(item)
+        if item:  # list is not empty
+            data.append(item)
     print(f'All pieces have at most one corresponding part number: {not over_one}')
-    print(f"Number of distinct pieces available on BrickOwl: {len(data)}")
+    print(f"Number of distinct pieces found on BrickOwl: {len(data)}")
+    print(f"Number of distinct pieces available on BrickOwl: {number_of_parts}")
+
+    assert len(data) == number_of_parts
 
     brickowl_df = pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
     brickowl_df = brickowl_df.iloc[1:].astype({'part_nr': object, 'colour_id': int})
