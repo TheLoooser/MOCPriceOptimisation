@@ -219,11 +219,36 @@ Based on the results in the table above, we can make some observations:
 For completion's sake, we also tested the lego discount variant by limiting the number of stores to two (i.e. simulating the behaviour of the first pipeline). The solver did find a solution, which means that it is in fact possible to purchase all necessary parts of this MOC only from two different stores. However, the total cost increased to 240.30. Also, this comparison is not quite fair, because the first pipeline excluded the parts, which were not present in either store.
 
 
-## Step XX: Verify quantities and prices
-see verify_parts.py
-created CSV's (lego, lego_only, missing, ...) -> import to rebrickable (for lego export newly created rebrickable list in the lego pick-a-brick format) -> use lists to shop in the corresponding stores -> check total price & compare to output of the scripts
-
-for the part list with blue pieces removed, make sure these parts are available in the selected stores.
+## Step 19: Verify quantities and prices
+Combine the part list from all stores into a single dataframe and check whether the total sum of each part matches with the quantity required by the MOC (from Step 1). Note that when the blue parts were excluded from the optimisation, they will appear in this step as missing.  
+To subsequently verify the price, the created CSV files for each store (or only the stores with parts selected) can be imported into rebrickable. Assuming the availability of the store has not changed in the meantime, the selected store should appear under the 'Buy Parts' tab on top with a 100% match of the required parts. If this is the case, those parts can be added to the shopping cart of the store and it will show to total price including shipping. If everything went right, the shown price should match exactly with what the solver spit out in Step 17. 
 
 > **⚠** The price shown in the brickowl store can deviate slightly from the sum of the price of the individual pieces multiplied by the selected amount.
+
+If the solution did not include the blue parts, make sure that these are available in any colour in any of the remaining store. Also, very important, check whether adding increases the shipping costs or not. If it does, it might be cheaper to select the same part from a different store, even if the part itself is slightly more expensive.
+
+
+# Conclusion
+
+## Limitations
+Even though the second pipeline is already a clear improvement over the first one, there are still some obvious limitations, which are not as easy to get rid of, especially considering how much they migth improve the final solution (if at all).  
+First of all, the current optimisation model only allows for a single purchase from a store, even if it would be cheaper to buy multipiple times. This mainly concerns international store, due to the upper limit of the total cost to avoid customs tarifs. If we wanted to include this option in our model, the x-variable would have to be three dimensional instead of two dimensional, which would make the whole model significantly more complex.  
+Another limitation is the number of weight buckets. Different stores can have different amounts of weight buckets. The current implementation has it fixed (once for national and once for international stores). The most accurate version would consider all weight buckets, however this would considerably increase the manual labour required to keep up with the different shipping costs of each weight bucket for each store, which does not seem to be worth the effort.
+
+## Difficulties
+While the pipeline does work, it is not the smooth sailing one would like to have when searching for the cheapest combination of parts. The main culprits are as follows.  
+First and foremost are the shipping costs. It is extremely difficult to accurately model the correct costs for each store. The reason for this is threefold. First, shipping costs vary depending on the weight of the order. Secondly, the same weight can still have different shipping costs for one store, because of the size of the parts. Third, the shipping costs can change over time or might not even be fully accurate in the first place.  
+Another difficult aspect is the possibility of changes of the websites. If a website gets a new design, the underlying HTML will most likely change as well, which in turn means that the extraction of data (Step 8 & 10) will no longer work and needs adjustments.  
+One more difficulty is having to download all these HTML files manually. While not being a very complex task, it is quite time consuming and tedious. 
+
+
+## Final thoughts
+Even after all this optimisation, the found solution might still not be optimal due to the limited selection of stores. It might not change the final price by much, but we can never be sure. Also, in the grand scheme of things, the invested time is not worth the price drop that was generated. One could have bought from the first best solution (e.g. BrickOwl AutoSelect), pay a little bit more and be done with it, especially considering the limited reusability of the implemented pipelines (see previous sections).  
+Furthermore, what if something goes wrong. E.g. for some reason the shopping cart for a selected store does not include all parts from the supplied part list. You will not necessarily pay more, but since you will be missing pieces, this will generate additional costs (especially shipping), since you will have to order those parts separately again.
+
+On the bright side, we can confidently say that we managed to clearly find a lower price. Also, being able to compare the prices of different variants is quite interesting, because of the insights it gives to how much you could potentially save with each of the different options. In the end, what matters is the fun I had along the way.
+
+> **It’s all about the journey, not the destination¹.**
+
+¹: But seeing the build MOC fully assembled does put a smile on my face :blush:.
 
