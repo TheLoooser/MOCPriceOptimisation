@@ -35,7 +35,7 @@ def get_external_piece_ids(element_id):
     result = requests.get(URL + f'elements/{element_id}/', headers={'Authorization': 'key ' + API_KEY})
     if result.status_code == 200:
         # print(str(element_id) + ", " , result.json()['part']['external_ids']['LEGO'])
-        return result.json()['part']['external_ids']
+        return result.json()['part']['external_ids'], result.json()['part']['molds']
     else:
         # print(str(element_id) + ", " + str(result.status_code))
         return []
@@ -59,8 +59,8 @@ def get_element_ids():
         lego_ids = []
         bricklink_ids = []
         for element in elements:
-            external_ids = get_external_piece_ids(element)
-            lego_ids.append(external_ids['LEGO'])
+            external_ids, mold_ids = get_external_piece_ids(element)
+            lego_ids.append(external_ids['LEGO'] + mold_ids)
             bricklink_ids.append(external_ids['BrickLink'])
             time.sleep(1)
         lego_ids = list(set([x for sublist in lego_ids for x in sublist]))
