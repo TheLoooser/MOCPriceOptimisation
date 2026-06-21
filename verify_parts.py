@@ -18,9 +18,10 @@ if __name__ == "__main__":
     part_list['selected'] = part_list.filter(like='Quantity_').sum(1)
     
     print("Parts with no or insufficient selection (or too many):")
-    print(part_list[part_list['Quantity'] != part_list['selected']].head())
+    print(part_list[part_list['Quantity'] != part_list['selected']].head(n=10))
     print("Example of part with no selection:")
-    print(part_list[(part_list['Part']=='3028') & (part_list['Color']==1)])
+    indexes = part_list.index[part_list['Quantity'] != part_list['selected']].to_list()
+    print(part_list.iloc[indexes[0]])
 
-  
-
+    # Index of 'blue' parts
+    # 55, 83, 256, 260, 261, 447, 471
