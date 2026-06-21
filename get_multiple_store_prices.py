@@ -27,11 +27,11 @@ if __name__ == '__main__':
 
     store_html_files = [
         # CH
-        'blackcat', 'swisspandabricks', 'brixxschmidt', 'brickntoast', \
-        'brickunion', 'playmondo', '500tomoon', 'hochisbricks', 'jurabrick', 'welcomebricks',
+        'blackcat', 'swisspandabricks', 'brixxschmidt', 'brickntoast',
+        'playmondo', '500tomoon', 'hochisbricks', 'jurabrick', 'welcomebricks',
         # EU
-        '3_bricks', 'andreas_brickstore', 'brickina', 'brick_takeover', 'brick_tasty', \
-        'brikea', 'brix_italy', 'just_brix', 'kleinesteinewelt', 'la_brickstore', \
+        '3_bricks', 'andreas_brickstore', 'brickina', 'brick_takeover', # 'brick_tasty',
+        'brikea', 'just_brix', 'kleinesteinewelt', 'la_brickstore',
         'little_big_store', 'lo_stanzino', 'sta_laedla', 'vivid_bricks'
     ]
 
