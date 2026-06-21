@@ -16,17 +16,17 @@ def extract_lego_data(filename):
     with open("data/HTML/" + filename, encoding="utf8") as fp:
         soup = BeautifulSoup(fp, 'lxml')
 
-    for piece in tqdm(soup.find_all('div', {'class' : 'ElementLeaf_wrapper__G5C7D'})):
+    for piece in tqdm(soup.find_all('div', {'class' : 'ListLeaf_wrapper__b6NU4'})):
         item = ()
-        for price in piece.find_all('div', {'class' : 'ElementLeaf_elementPrice__SwfmC ds-body-sm-medium'}):
+        for price in piece.find_all('span', {'class' : 'ListLeaf_price__30pcy ds-label-md-regular'}):
             price = float(price.text[:-4].replace(",", "."))
             item = item + (price,)
-        for amount in piece.find_all('input', {'class' : '_43qpxq_input _43qpxq_medium ds-label-lg-regular'}):
+        for amount in piece.find_all('input', {'class' : '_43qpxq_input _43qpxq_small ds-label-md-regular'}):
             amount = int(amount['value'])
             item = item + (amount,)
-        for id in piece.find_all('p', {'class' : 'ElementLeaf_elementId__gY8no ds-body-xs-regular'}):
-            element_id, part_nr = id.text[4:].split("/")
-            item = item + (part_nr, element_id)
+        for id in piece.find_all('p', {'class' : 'ListLeaf_elementId__3K1VO ds-label-sm-regular'}):
+            element_id = id.text[4:]
+            item = item + (element_id,)
         lego_data.append(item)
 
     return lego_data
@@ -40,24 +40,33 @@ def map_lego_piece_id_to_mapping_list_id(dictionary):
     for idx, part_nr, _, _, element_list, lego_list, _, _ in tqdm(mapping, total=len(mapping)):
         # print(str(idx) + " " + str(part_nr) + " " + element_list)
         found = False
-        if part_nr in dictionary.keys():
-            for element_id in ast.literal_eval(element_list):
-                if element_id in dictionary[part_nr].keys():
-                    lego_prices.append([element_id, *dictionary[part_nr][element_id]])                    
-                    found = True
-                    i += 1
-
+        for element_id in ast.literal_eval(element_list):
+            if element_id in dictionary.keys():
+                lego_prices.append([element_id, *dictionary[element_id]])
+                found = True
+                i += 1
         if not found:
-            for lego_id in ast.literal_eval(lego_list):
-                if lego_id in dictionary.keys():
-                    for element_id in ast.literal_eval(element_list):
-                        if element_id in dictionary[lego_id].keys():
-                            lego_prices.append([element_id, *dictionary[lego_id][element_id]])
-                            found = True
-                            i += 1
-            if not found:
-                lego_prices.append([None, None, None])
-                not_found.append([idx, part_nr, element_list])
+            lego_prices.append([None, None, None])
+            not_found.append([idx, part_nr, element_list])
+        
+        # if part_nr in dictionary.keys():
+        #     for element_id in ast.literal_eval(element_list):
+        #         if element_id in dictionary[part_nr].keys():
+        #             lego_prices.append([element_id, *dictionary[part_nr][element_id]])                    
+        #             found = True
+        #             i += 1
+
+        # if not found:
+        #     for lego_id in ast.literal_eval(lego_list):
+        #         if lego_id in dictionary.keys():
+        #             for element_id in ast.literal_eval(element_list):
+        #                 if element_id in dictionary[lego_id].keys():
+        #                     lego_prices.append([element_id, *dictionary[lego_id][element_id]])
+        #                     found = True
+        #                     i += 1
+        #     if not found:
+        #         lego_prices.append([None, None, None])
+        #         not_found.append([idx, part_nr, element_list])
 
     print(f"Number of mapped LEGO piece prices to the list {i}.")
     # print(len(lego_prices))
@@ -86,11 +95,11 @@ def map_lego_prices(lego_html_files):
     print(f"Number of distinct pieces available on LEGO: {len(data)}")
 
     # Store the data in a (nested) dictionary
-    df = pd.DataFrame(data, columns=['price', 'amount', 'part_nr', 'element_id'])
+    df = pd.DataFrame(data, columns=['price', 'amount', 'element_id'])
 
     dictionary = defaultdict(dict)
     for t in df.itertuples():
-        dictionary[t.part_nr][t.element_id] = (t.price, t.amount)
+        dictionary[t.element_id] = (t.price, t.amount)
 
     # Map lego piece ID's to the ID's from the mapping list
     map_lego_piece_id_to_mapping_list_id(dictionary)
@@ -122,11 +131,14 @@ def extract_brickowl_data(store_name):
     
     data = []
     over_one = False
+    incomplete = 0
+    remember = []
     for tr in tqdm(soup.find('table', class_='data-table cart-table responsive_expand dt-table dataTable no-footer dtr-').find_all('tr')):
         item = ()
         for id in tr.find_all('td', {'class' : 'sorting_1'}):
             children = id.find_all("a" , recursive=False)
             part_nrs = re.search("(\([\d\s\/]*\)$)", children[0].text).group(0)[1:-1].replace(" ", "").split("/")  # ([\d]*\)$)
+            remember = part_nrs
 
             longest_match = ""
             for colour in colour_names:
@@ -165,7 +177,12 @@ def extract_brickowl_data(store_name):
             item = item + (piece_amount,)
 
         if item:  # list is not empty
+            if len(item) < 4:
+                incomplete += 1
+                print(f"{remember} - {item}")
             data.append(item)
+
+    print(incomplete)
     print(f'All pieces have at most one corresponding part number: {not over_one}')
     print(f"Number of distinct pieces found on BrickOwl: {len(data)}")
     print(f"Number of distinct pieces available on BrickOwl: {number_of_parts}")
@@ -173,8 +190,8 @@ def extract_brickowl_data(store_name):
     assert len(data) == number_of_parts
 
     brickowl_df = pd.DataFrame(data, columns=['part_nr', 'colour_id', 'price', 'amount'])
-    brickowl_df = brickowl_df.iloc[1:].astype({'part_nr': object, 'colour_id': int})
-    brickowl_df = brickowl_df.groupby(['part_nr', 'colour_id'], as_index=False).agg({'price': 'mean', 'amount': 'sum'})  # Aggregate multiple rows with the same part together
+    brickowl_df = brickowl_df.astype({'part_nr': object, 'colour_id': int})
+    brickowl_df = brickowl_df.groupby(['part_nr', 'colour_id'], as_index=False, dropna=False).agg({'price': 'mean', 'amount': 'sum'})  # Aggregate multiple rows with the same part together
 
     return brickowl_df
 
